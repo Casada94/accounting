@@ -1,0 +1,15 @@
+spring:
+  application.name: accounting
+  mail:
+    username: youremail@gmail.com
+    host: smtp.gmail.com
+    port: 587
+    password: Copied Password From App Password
+    properties:
+      mail:
+        transport.protocol: smtp
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
