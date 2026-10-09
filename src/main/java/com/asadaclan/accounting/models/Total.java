@@ -18,10 +18,10 @@ public class Total{
         this.tip = tip;
         this.expenses = expenses;
 
-        // expenses is negative so it can just be summed
-        this.grossIncome = revenue + expenses; 
+        // Expenses are negative, and tips are tax exempt.
+        this.grossIncome = revenue + expenses;
 
         this.estimatedTaxes = (float) (this.grossIncome * 0.25);
-        this.takeHome = grossIncome - estimatedTaxes;
+        this.takeHome = grossIncome - estimatedTaxes + tip;
     }
 }

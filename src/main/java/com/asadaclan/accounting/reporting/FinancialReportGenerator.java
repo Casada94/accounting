@@ -1,15 +1,13 @@
 package com.asadaclan.accounting.reporting;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileUrlResource;
+import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -28,31 +26,25 @@ public class FinancialReportGenerator {
 
     private ProcessExecutionService execService;
     private EmailProducer emailProducer;
-    private File monthlyTemplateFile;
-    private File yearlyTemplateFile;
-    private File revenueTemplateFile;
-    private File expenseTemplateFile;
-    private File totalsTemplateFile;
+    private Resource monthlyTemplate;
+    private Resource yearlyTemplate;
+    private Resource revenueTemplate;
+    private Resource expenseTemplate;
+    private Resource totalsTemplate;
 
     public FinancialReportGenerator(ProcessExecutionService execService, EmailProducer emailProducer,
-            @Value("templates.locations.monthly") String monthlyTemplateLocation,
-            @Value("templates.locations.yearly") String yearlyTemplateLocation,
-            @Value("templates.locations.revenue") String revenueTemplateLocation,
-            @Value("templates.locations.expenses") String expenseTemplateLocation,
-            @Value("templates.locations.totals") String totalsTemplateLocation) {
+            @Value("${templates.locations.monthly}") Resource monthlyTemplate,
+            @Value("${templates.locations.yearly}") Resource yearlyTemplate,
+            @Value("${templates.locations.revenue}") Resource revenueTemplate,
+            @Value("${templates.locations.expenses}") Resource expenseTemplate,
+            @Value("${templates.locations.totals}") Resource totalsTemplate) {
         this.execService = execService;
         this.emailProducer = emailProducer;
-
-        // try {
-            this.monthlyTemplateFile = new File(monthlyTemplateLocation);
-            this.yearlyTemplateFile = new File(yearlyTemplateLocation);
-            this.revenueTemplateFile = new File(revenueTemplateLocation);
-            this.expenseTemplateFile = new File(expenseTemplateLocation);
-            this.totalsTemplateFile = new File(totalsTemplateLocation);
-        // } catch (IOException ioException) {
-            // log.error(ioException.getMessage());
-        //     throw ioException;
-        // }
+        this.monthlyTemplate = monthlyTemplate;
+        this.yearlyTemplate = yearlyTemplate;
+        this.revenueTemplate = revenueTemplate;
+        this.expenseTemplate = expenseTemplate;
+        this.totalsTemplate = totalsTemplate;
     }
 
     @Scheduled(cron = "0 0 1 1 * *")
@@ -69,12 +61,12 @@ public class FinancialReportGenerator {
 
         Total totals = processData(income, expenses);
 
-        File rawLatexFile = populateTemplate(monthlyTemplateFile, income, expenses, totals);
+        File rawLatexFile = populateTemplate(monthlyTemplate, income, expenses, totals);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM_yyyy");
         String monthYear = targetMonth.format(formatter);
 
-        File monthlyPDF = execService.generatePDF(rawLatexFile, monthYear + "_MonthlyFinancialReport.pdf");
+        File monthlyPDF = execService.generatePDF(rawLatexFile, monthYear + "_MonthlyFinancialReport");
 
         emailProducer.sendMail(monthYear + " Financial Report", "", monthlyPDF);
     }
@@ -93,12 +85,12 @@ public class FinancialReportGenerator {
 
         Total totals = processData(income, expenses);
 
-        File rawLatexFile = populateTemplate(yearlyTemplateFile, income, expenses, totals);
+        File rawLatexFile = populateTemplate(yearlyTemplate, income, expenses, totals);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy");
         String year = targetYear.format(formatter);
 
-        File yearlyPDF = execService.generatePDF(rawLatexFile, year + "_YearlyFinancialReport.pdf");
+        File yearlyPDF = execService.generatePDF(rawLatexFile, year + "_YearlyFinancialReport");
 
         emailProducer.sendMail(year + " Financial Report", "", yearlyPDF);
     }
@@ -122,40 +114,56 @@ public class FinancialReportGenerator {
 
     // not super sold on the layout of these methods
 
-    public File populateTemplate(File template, List<Transaction> transactions, List<Transaction> expenses,
+    public File populateTemplate(Resource template, List<Transaction> transactions, List<Transaction> expenses,
             Total totals) throws FileUtilException {
 
-        String revenueTemplate = FileUtil.readString(revenueTemplateFile);
+        String revenueTemplate = FileUtil.readString(this.revenueTemplate);
         StringBuilder incomeBuilder = new StringBuilder();
         for (Transaction transaction : transactions) {
-            // incomeBuilder.append(String.format(revenueTemplate, transaction.items(), transaction.transactionAmount(),
-            //         transaction.tipAmount(), transaction.image()));
-            incomeBuilder.append(String.format(revenueTemplate, transaction.items(), transaction.transactionAmount(),
-                    transaction.tipAmount()));
+            incomeBuilder.append(String.format(revenueTemplate, escapeLatex(transaction.items()),
+                    transaction.transactionAmount(), transaction.tipAmount().orElse(0.0f)));
         }
 
-        String expenseTemplate = FileUtil.readString(expenseTemplateFile);
+        String expenseTemplate = FileUtil.readString(this.expenseTemplate);
         StringBuilder expenseBuilder = new StringBuilder();
-        for (Transaction transaction : transactions) {
-            // expenseBuilder.append(String.format(expenseTemplate, transaction.items(), transaction.transactionAmount(),
-            //         transaction.tipAmount(), transaction.image()));
-            expenseBuilder.append(String.format(expenseTemplate, transaction.items(), transaction.transactionAmount(),
-                    transaction.tipAmount()));
+        for (Transaction transaction : expenses) {
+            expenseBuilder.append(String.format(expenseTemplate, escapeLatex(transaction.items()),
+                    transaction.transactionAmount()));
         }
 
-        String totalsTemplate = FileUtil.readString(totalsTemplateFile);
+        String totalsTemplate = FileUtil.readString(this.totalsTemplate);
         String totalsString = String.format(totalsTemplate, totals.getRevenue(), totals.getTip(), totals.getExpenses(),
                 totals.getEstimatedTaxes(), totals.getTakeHome());
 
         String templateContent = FileUtil.readString(template);
 
         String reportContent = templateContent.replace("%%income%%", incomeBuilder.toString());
-        reportContent = templateContent.replace("%%expense%%", expenseBuilder.toString());
-        reportContent = templateContent.replace("%%totals%%", totalsString);
+        reportContent = reportContent.replace("%%expense%%", expenseBuilder.toString());
+        reportContent = reportContent.replace("%%totals%%", totalsString);
 
         File generatedLatexFile = FileUtil.writeToFile(reportContent);
 
         return generatedLatexFile;
+    }
+
+    private String escapeLatex(String value) {
+        StringBuilder escaped = new StringBuilder();
+        for (char character : value.toCharArray()) {
+            switch (character) {
+                case '\\' -> escaped.append("\\textbackslash{}");
+                case '&' -> escaped.append("\\&");
+                case '%' -> escaped.append("\\%");
+                case '$' -> escaped.append("\\$");
+                case '#' -> escaped.append("\\#");
+                case '_' -> escaped.append("\\_");
+                case '{' -> escaped.append("\\{");
+                case '}' -> escaped.append("\\}");
+                case '~' -> escaped.append("\\textasciitilde{}");
+                case '^' -> escaped.append("\\textasciicircum{}");
+                default -> escaped.append(character);
+            }
+        }
+        return escaped.toString();
     }
 
 }

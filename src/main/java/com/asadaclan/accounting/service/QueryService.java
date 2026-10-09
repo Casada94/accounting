@@ -1,7 +1,10 @@
 package com.asadaclan.accounting.service;
 
+import org.springframework.stereotype.Service;
+
 import com.asadaclan.accounting.models.ReceivedMessage;
 
+@Service
 public class QueryService {
 
     // private Dao dao;

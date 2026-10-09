@@ -1,6 +1,5 @@
 package com.asadaclan.accounting.controllers;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -17,11 +16,9 @@ import jakarta.mail.MessagingException;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.util.HtmlUtils;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.asadaclan.accounting.enums.MessageAction;
 import com.asadaclan.accounting.enums.MessageComponents;
@@ -29,10 +26,12 @@ import com.asadaclan.accounting.exceptions.FileUtilException;
 import com.asadaclan.accounting.exceptions.ParseMessageException;
 import com.asadaclan.accounting.exceptions.ProcessExecutionServiceException;
 import com.asadaclan.accounting.exceptions.ReportException;
+import com.asadaclan.accounting.models.Query;
 import com.asadaclan.accounting.models.ReceivedMessage;
 import com.asadaclan.accounting.models.Transaction;
+import com.asadaclan.accounting.models.TwimlResponse;
 
-@Controller
+@RestController
 public class SmsController {
 
     private final ProcessExecutionService processExecutionService;
@@ -52,27 +51,28 @@ public class SmsController {
 
     @PostMapping(value = "/sms", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.APPLICATION_XML_VALUE)
-    public ResponseEntity<String> receiveSms(@RequestParam("Body") String body)
+    public TwimlResponse receiveSms(@RequestParam("Body") String body)
             throws ParseMessageException, ReportException, FileUtilException, ProcessExecutionServiceException,
             InterruptedException, MessagingException {
         String response = "";
-        ReceivedMessage message = parseMessage(body);
+        String[] messageParts = body.split(",");
+        MessageAction action = determineAction(messageParts[0]);
 
-        switch (message.messageAction()) {
+        switch (action) {
             case MessageAction.Transaction:
-                Transaction transaction = validateTransaction(message);
+                Transaction transaction = TransactionParser.parse(messageParts);
                 // String transId = dao.save(transaction);
                 String transId = "tempId";
                 response = "transactionId: " + transId;
                 break;
             case MessageAction.Expense:
-                Transaction expense = validateExpense(message);
+                Transaction expense = TransactionParser.parse(messageParts);
                 // String transId = dao.save(transaction);
                 String expenseId = "tempId";
                 response = "transactionId: " + expenseId;
                 break;
             case MessageAction.Query:
-                // Query query = validateQuery(message);
+                Query query = QueryParser.parse(messageParts);
                 response = queryService.answer(message);
                 break;
             case MessageAction.MonthlyReport:
@@ -90,15 +90,11 @@ public class SmsController {
                 break;
         }
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_XML)
-                .body(createTwimlResponse(response));
+        return new TwimlResponse(response);
     }
 
-    private String createTwimlResponse(String message) {
-        String escapedMessage = HtmlUtils.htmlEscape(message, StandardCharsets.UTF_8.name());
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-                + "<Response><Message>" + escapedMessage + "</Message></Response>";
+    private MessageAction determineAction(String firstElement) {
+        return MessageAction.valueOf(firstElement);
     }
 
     private ReceivedMessage parseMessage(String rawMessage) throws ParseMessageException {
@@ -193,9 +189,11 @@ public class SmsController {
 
     }
 
-    // public Query validateQuery(ReceivedMessage message) {
+    public Query validateQuery(ReceivedMessage message) {
 
-    // }
+        return new Query();
+
+    }
 
     public LocalDate validateReportRequest(ReceivedMessage message) throws ReportException {
         try {

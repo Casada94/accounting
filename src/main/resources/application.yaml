@@ -1,1 +1,18 @@
-spring.application.name=accounting
+spring:
+  application:
+    name: accounting
+
+email:
+  recipients: ${EMAIL_RECIPIENTS:}
+
+processExecution:
+  workingDir:
+    pdf: generated/pdf
+
+templates:
+  locations:
+    monthly: classpath:/templates/monthly-pdf.latex.template
+    yearly: classpath:/templates/yearly-pdf.latex.template
+    revenue: classpath:/templates/revenue-row.latex.template
+    expenses: classpath:/templates/expense-row.latex.template
+    totals: classpath:/templates/totals-row.latex.template

@@ -2,25 +2,23 @@ package com.asadaclan.accounting.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+
+import org.springframework.core.io.Resource;
 
 import com.asadaclan.accounting.exceptions.FileUtilException;
 
 public class FileUtil {
 
-    public static String readString(File file) throws FileUtilException {
-        String contents;
-        try {
-            contents = Files.readString(Paths.get(file.getPath()));
+    public static String readString(Resource resource) throws FileUtilException {
+        try (InputStream inputStream = resource.getInputStream()) {
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            throw new FileUtilException();
+            throw new FileUtilException(e);
         }
-
-        return contents;
     }
 
     public static File writeToFile(String contents) throws FileUtilException{

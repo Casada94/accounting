@@ -7,19 +7,22 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Component;
 
 import com.asadaclan.accounting.exceptions.CryptoException;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
+@Component
 public class EmailProducer {
 
     private JavaMailSender mailSender; 
     private List<String> recipients;
 
-    public EmailProducer(JavaMailSender mailSender, @Value("email.recepients") List<String> recipients)
+    public EmailProducer(JavaMailSender mailSender, @Value("${email.recipients:}") List<String> recipients)
             throws CryptoException {
+        this.mailSender = mailSender;
         this.recipients = recipients;
     }
 
@@ -31,7 +34,7 @@ public class EmailProducer {
         // a multipart message.
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-        helper.setTo(String.join(",", recipients));
+        helper.setTo(recipients.toArray(String[]::new));
         helper.setSubject(subject);
         // The 'false' argument here indicates the text is plain text, not HTML
         helper.setText(bodyText, false);

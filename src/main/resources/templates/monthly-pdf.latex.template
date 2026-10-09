@@ -1,0 +1,43 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\usepackage{longtable}
+
+\definecolor{headergray}{HTML}{E9ECEF}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\begin{center}
+    {\LARGE\bfseries Monthly Financial Report}
+\end{center}
+
+\section*{Summary}
+%%totals%%
+
+\section*{Transactions}
+
+\subsection*{Revenue}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.58\textwidth}rr}
+    \toprule
+    \rowcolor{headergray}
+    \textbf{Description} & \textbf{Amount} & \textbf{Tip} \\
+    \midrule
+%%income%%
+    \bottomrule
+\end{longtable}
+
+\subsection*{Expenses}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.72\textwidth}r}
+    \toprule
+    \rowcolor{headergray}
+    \textbf{Description} & \textbf{Amount} \\
+    \midrule
+%%expense%%
+    \bottomrule
+\end{longtable}
+
+\end{document}
