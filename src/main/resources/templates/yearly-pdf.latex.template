@@ -13,31 +13,13 @@
 
 \begin{center}
     {\LARGE\bfseries Yearly Financial Report}
+
+    {\large %%year%%}
 \end{center}
 
 \section*{Summary}
 %%totals%%
 
-\section*{Transactions}
-
-\subsection*{Revenue}
-\begin{longtable}{>{\raggedright\arraybackslash}p{0.58\textwidth}rr}
-    \toprule
-    \rowcolor{headergray}
-    \textbf{Description} & \textbf{Amount} & \textbf{Tip} \\
-    \midrule
-%%income%%
-    \bottomrule
-\end{longtable}
-
-\subsection*{Expenses}
-\begin{longtable}{>{\raggedright\arraybackslash}p{0.72\textwidth}r}
-    \toprule
-    \rowcolor{headergray}
-    \textbf{Description} & \textbf{Amount} \\
-    \midrule
-%%expense%%
-    \bottomrule
-\end{longtable}
+%%months%%
 
 \end{document}

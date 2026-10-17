@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
@@ -32,7 +33,7 @@ public final class ExpenseParser implements Parser<Expense> {
     }
 
     @Override
-    public Expense parse(List<String> messageParts) {
+    public Expense parse(List<String> messageParts, UUID businessId) {
         String[] parts = messageParts == null ? null : messageParts.toArray(String[]::new);
         if (parts == null || parts.length == 0) {
             throw error(ParseErrorCode.EMPTY_MESSAGE, 0, "action", "Message must not be blank");
@@ -49,7 +50,7 @@ public final class ExpenseParser implements Parser<Expense> {
         LocalDate date = fields.length > DATE_INDEX && !fields[DATE_INDEX].isEmpty()
                 ? parseDate(fields[DATE_INDEX])
                 : dateParser.businessDate();
-        return new Expense(cost, reason, date);
+        return new Expense(null, businessId, cost, reason, date);
     }
 
     private String[] normalize(String[] parts) {

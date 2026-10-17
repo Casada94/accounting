@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -16,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import com.asadaclan.accounting.entities.Expense;
 import com.asadaclan.accounting.entities.Help;
 import com.asadaclan.accounting.entities.Payout;
-import com.asadaclan.accounting.entities.Report;
+import com.asadaclan.accounting.entities.ReportRequest;
 import com.asadaclan.accounting.entities.Transaction;
 import com.asadaclan.accounting.entities.Undo;
 
@@ -81,7 +80,8 @@ class MessageDelegationServiceTests {
 
     @Test
     void delegatesReports() {
-        Report message = new Report("month", Optional.of("2026-10"));
+        ReportRequest message = new ReportRequest(
+                LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31));
 
         delegationService.delegate(message);
 

@@ -21,23 +21,24 @@ public class FileUtil {
         }
     }
 
-    public static File writeToFile(String contents) throws FileUtilException{
-        Path tempFile;
+    public static File writeToFile(String contents) throws FileUtilException {
         try {
-            tempFile = Files.createTempFile("", "");
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            throw new FileUtilException();
+            Path tempFile = Files.createTempFile("financial-report-", ".tex");
+            Files.writeString(tempFile, contents, StandardCharsets.UTF_8);
+            return tempFile.toFile();
+        } catch (IOException exception) {
+            throw new FileUtilException(exception);
         }
-        try {
-            tempFile = Files.write(tempFile, contents.getBytes());
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            throw new FileUtilException("Unable to Write Contents to file");
+    }
+
+    public static void deleteIfExists(File file) {
+        if (file != null) {
+            try {
+                Files.deleteIfExists(file.toPath());
+            } catch (IOException ignored) {
+                file.deleteOnExit();
+            }
         }
-        return tempFile.toFile();
     }
 
 }

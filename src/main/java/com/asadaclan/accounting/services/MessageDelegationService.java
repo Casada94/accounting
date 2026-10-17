@@ -6,7 +6,7 @@ import com.asadaclan.accounting.entities.Expense;
 import com.asadaclan.accounting.entities.Help;
 import com.asadaclan.accounting.entities.Payout;
 // import com.asadaclan.accounting.entities.Query;
-import com.asadaclan.accounting.entities.Report;
+import com.asadaclan.accounting.entities.ReportRequest;
 import com.asadaclan.accounting.entities.Transaction;
 import com.asadaclan.accounting.entities.Undo;
 
@@ -49,7 +49,7 @@ public class MessageDelegationService {
     //     return queryService.processQuery(query);
     // }
 
-    public void delegate(Report report) {
+    public void delegate(ReportRequest report) {
         reportService.generateReport(report);
     }
 

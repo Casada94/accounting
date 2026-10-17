@@ -17,14 +17,17 @@ help:
     report: "Report: report, month, month?, year? OR report, year, year?"
     undo: "Undo: undo, transactionId"
 
-processExecution:
-  workingDir:
-    pdf: generated/pdf
+reporting:
+  pdf:
+    working-dir: generated/pdf
+    timeout: 60s
 
 templates:
   locations:
     monthly: classpath:/templates/monthly-pdf.latex.template
     yearly: classpath:/templates/yearly-pdf.latex.template
+    month-section: classpath:/templates/month-section.latex.template
     revenue: classpath:/templates/revenue-row.latex.template
     expenses: classpath:/templates/expense-row.latex.template
+    payouts: classpath:/templates/payout-row.latex.template
     totals: classpath:/templates/totals-row.latex.template

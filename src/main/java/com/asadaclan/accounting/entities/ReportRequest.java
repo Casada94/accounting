@@ -1,6 +1,6 @@
 package com.asadaclan.accounting.entities;
 
-import java.util.Optional;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
@@ -10,33 +10,33 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 @Table("report")
-public final class Report implements Persistable<UUID> {
+public final class ReportRequest implements Persistable<UUID> {
     @Id
     private final UUID id;
 
     @Column("business_id")
     private final UUID businessId;
 
-    @Column("report_type")
-    private final String reportType;
+    @Column("start_date")
+    private final LocalDate startDate;
 
-    @Column("report_period")
-    private final String reportPeriod;
+    @Column("end_date")
+    private final LocalDate endDate;
 
-    public Report(String reportType, Optional<String> reportPeriod) {
-        this(null, null, reportType, reportPeriod == null ? null : reportPeriod.orElse(null));
+    public ReportRequest(LocalDate startDate, LocalDate endDate) {
+        this(null, null, startDate, endDate);
     }
 
     @PersistenceCreator
-    public Report(UUID id, UUID businessId, String reportType, String reportPeriod) {
+    public ReportRequest(UUID id, UUID businessId, LocalDate startDate, LocalDate endDate) {
         this.id = id;
         this.businessId = businessId;
-        this.reportType = reportType;
-        this.reportPeriod = reportPeriod;
+        this.startDate = startDate;
+        this.endDate = endDate;
     }
 
-    public Report withId(UUID id) {
-        return new Report(id, businessId, reportType, reportPeriod);
+    public ReportRequest withId(UUID id) {
+        return new ReportRequest(id, businessId, startDate, endDate);
     }
 
     @Override
@@ -57,11 +57,11 @@ public final class Report implements Persistable<UUID> {
         return businessId;
     }
 
-    public String reportType() {
-        return reportType;
+    public LocalDate startDate() {
+        return startDate;
     }
 
-    public Optional<String> reportPeriod() {
-        return Optional.ofNullable(reportPeriod);
+    public LocalDate endDate() {
+        return endDate;
     }
 }

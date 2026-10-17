@@ -4,7 +4,8 @@
     \toprule
     Revenue & \$%.2f \\
     Tips & \$%.2f \\
-    Expenses & \$%.2f \\
+    Expenses & -\$%.2f \\
+    Payouts (informational) & \$%.2f \\
     Estimated taxes & \$%.2f \\
     \midrule
     \textbf{Take-home income} & \textbf{\$%.2f} \\

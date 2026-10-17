@@ -13,6 +13,8 @@
 
 \begin{center}
     {\LARGE\bfseries Monthly Financial Report}
+
+    {\large %%period%%}
 \end{center}
 
 \section*{Summary}
@@ -37,6 +39,16 @@
     \textbf{Description} & \textbf{Amount} \\
     \midrule
 %%expense%%
+    \bottomrule
+\end{longtable}
+
+\subsection*{Payouts}
+\begin{longtable}{r}
+    \toprule
+    \rowcolor{headergray}
+    \textbf{Amount} \\
+    \midrule
+%%payout%%
     \bottomrule
 \end{longtable}
 

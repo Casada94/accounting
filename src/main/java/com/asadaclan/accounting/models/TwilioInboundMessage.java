@@ -1,18 +1,16 @@
 package com.asadaclan.accounting.models;
 
-import lombok.Data;
+import org.springframework.web.bind.annotation.BindParam;
 
-@Data
-public class TwilioInboundMessage {
-    private final String messageSid;
-    private final String accountSid;
-    private final String messagingServiceSid;
-    private final String from;
-    private final String to;
-    private final String body;
-    private final int numMedia;
-    private final int numSegments;
-    private final String mediaContentType0;
-    private final String mediaUrl0;
-    
+public record TwilioInboundMessage(
+        @BindParam("MessageSid") String messageSid,
+        @BindParam("AccountSid") String accountSid,
+        @BindParam("MessagingServiceSid") String messagingServiceSid,
+        @BindParam("From") String from,
+        @BindParam("To") String to,
+        @BindParam("Body") String body,
+        @BindParam("NumMedia") Integer numMedia,
+        @BindParam("NumSegments") Integer numSegments,
+        @BindParam("MediaContentType0") String mediaContentType0,
+        @BindParam("MediaUrl0") String mediaUrl0) {
 }

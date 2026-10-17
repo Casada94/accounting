@@ -22,7 +22,7 @@ public final class UndoParser implements Parser<Undo> {
     private static final int MAX_FIELDS = 2;
 
     @Override
-    public Undo parse(List<String> messageParts) {
+    public Undo parse(List<String> messageParts, UUID businessId) {
         String[] parts = messageParts == null ? null : messageParts.toArray(String[]::new);
         if (parts == null || parts.length == 0) {
             throw error(ParseErrorCode.EMPTY_MESSAGE, ACTION_INDEX, "action", "Message must not be blank");
@@ -35,7 +35,7 @@ public final class UndoParser implements Parser<Undo> {
         }
 
         UUID transactionId = parseTransactionId(required(fields, TRANSACTION_ID_INDEX, "transactionId"));
-        return new Undo(transactionId);
+        return new Undo(null, businessId, transactionId);
     }
 
     private String[] normalize(String[] parts) {

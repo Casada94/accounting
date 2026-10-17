@@ -1,6 +1,7 @@
 package com.asadaclan.accounting.services;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -37,15 +38,15 @@ public class ParserDelegationService {
         this.helpParser = helpParser;
     }
 
-    public Object delegate(List<String> messageParts, MessageAction action) {
+    public Object delegate(List<String> messageParts, MessageAction action, UUID businessId) {
         return switch (action) {
-            case Transaction -> transactionParser.parse(messageParts);
-            case Payout -> payoutParser.parse(messageParts);
-            case Expense -> expenseParser.parse(messageParts);
-            // case Query -> queryParser.parse(messageParts);
-            case Report -> reportParser.parse(messageParts);
-            case Undo -> undoParser.parse(messageParts);
-            case Help -> helpParser.parse(messageParts);
+            case Transaction -> transactionParser.parse(messageParts, businessId);
+            case Payout -> payoutParser.parse(messageParts, businessId);
+            case Expense -> expenseParser.parse(messageParts, businessId);
+            // case Query -> queryParser.parse(messageParts, businessId);
+            case Report -> reportParser.parse(messageParts, businessId);
+            case Undo -> undoParser.parse(messageParts, businessId);
+            case Help -> helpParser.parse(messageParts, businessId);
             case Default -> throw new IllegalArgumentException("No parser is configured for action: " + action);
         };
     }

@@ -3,6 +3,7 @@ package com.asadaclan.accounting.parsers;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
@@ -21,7 +22,7 @@ public final class HelpParser implements Parser<Help> {
     private static final int MAX_FIELDS = 2;
 
     @Override
-    public Help parse(List<String> messageParts) {
+    public Help parse(List<String> messageParts, UUID businessId) {
         String[] parts = messageParts == null ? null : messageParts.toArray(String[]::new);
         if (parts == null || parts.length == 0 || parts[0] == null || parts[0].isBlank()) {
             throw new CommandParseException(

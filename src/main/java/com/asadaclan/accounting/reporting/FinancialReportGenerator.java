@@ -1,149 +1,145 @@
 package com.asadaclan.accounting.reporting;
 
 import java.io.File;
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.format.TextStyle;
+import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.asadaclan.accounting.exceptions.FileUtilException;
-import com.asadaclan.accounting.exceptions.ProcessExecutionServiceException;
-import com.asadaclan.accounting.models.Total;
+import com.asadaclan.accounting.entities.Expense;
+import com.asadaclan.accounting.entities.Payout;
 import com.asadaclan.accounting.entities.Transaction;
-import com.asadaclan.accounting.producers.EmailProducer;
-import com.asadaclan.accounting.service.ProcessExecutionService;
+import com.asadaclan.accounting.exceptions.FileUtilException;
+import com.asadaclan.accounting.exceptions.PdfGenerationException;
+import com.asadaclan.accounting.models.MonthlyReport;
+import com.asadaclan.accounting.models.Total;
+import com.asadaclan.accounting.models.YearlyReport;
 import com.asadaclan.accounting.util.FileUtil;
-
-import jakarta.mail.MessagingException;
 
 @Service
 public class FinancialReportGenerator {
 
-    private ProcessExecutionService execService;
-    private EmailProducer emailProducer;
-    private Resource monthlyTemplate;
-    private Resource yearlyTemplate;
-    private Resource revenueTemplate;
-    private Resource expenseTemplate;
-    private Resource totalsTemplate;
+    private final LatexPdfCompiler pdfCompiler;
+    private final Resource monthlyTemplate;
+    private final Resource yearlyTemplate;
+    private final Resource monthSectionTemplate;
+    private final Resource revenueTemplate;
+    private final Resource expenseTemplate;
+    private final Resource payoutTemplate;
+    private final Resource totalsTemplate;
 
-    public FinancialReportGenerator(ProcessExecutionService execService, EmailProducer emailProducer,
+    public FinancialReportGenerator(LatexPdfCompiler pdfCompiler,
             @Value("${templates.locations.monthly}") Resource monthlyTemplate,
             @Value("${templates.locations.yearly}") Resource yearlyTemplate,
+            @Value("${templates.locations.month-section}") Resource monthSectionTemplate,
             @Value("${templates.locations.revenue}") Resource revenueTemplate,
             @Value("${templates.locations.expenses}") Resource expenseTemplate,
+            @Value("${templates.locations.payouts}") Resource payoutTemplate,
             @Value("${templates.locations.totals}") Resource totalsTemplate) {
-        this.execService = execService;
-        this.emailProducer = emailProducer;
+        this.pdfCompiler = pdfCompiler;
         this.monthlyTemplate = monthlyTemplate;
         this.yearlyTemplate = yearlyTemplate;
+        this.monthSectionTemplate = monthSectionTemplate;
         this.revenueTemplate = revenueTemplate;
         this.expenseTemplate = expenseTemplate;
+        this.payoutTemplate = payoutTemplate;
         this.totalsTemplate = totalsTemplate;
     }
 
-    @Scheduled(cron = "0 0 1 1 * *")
-    public void monthlyFinancialReportAutomatic()  throws FileUtilException, ProcessExecutionServiceException, InterruptedException, MessagingException {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        monthlyFinancialReport(yesterday);
+    public File generate(MonthlyReport report)
+            throws FileUtilException, PdfGenerationException, InterruptedException {
+        File rawLatexFile = populateMonthlyTemplate(report);
+        try {
+            String monthYear = report.period().format(DateTimeFormatter.ofPattern("MM_yyyy"));
+            return pdfCompiler.compile(rawLatexFile, monthYear + "_MonthlyFinancialReport");
+        } finally {
+            FileUtil.deleteIfExists(rawLatexFile);
+        }
     }
 
-    public void monthlyFinancialReport(LocalDate targetMonth) throws FileUtilException, ProcessExecutionServiceException, InterruptedException, MessagingException  {
-        // List<Transaction> income = dao.getTransactionDataForMonth();
-        // List<Transaction> expenses = dao.getExpenseDataForMonth();
-        List<Transaction> income = new ArrayList<>();
-        List<Transaction> expenses = new ArrayList<>();
-
-        Total totals = processData(income, expenses);
-
-        File rawLatexFile = populateTemplate(monthlyTemplate, income, expenses, totals);
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM_yyyy");
-        String monthYear = targetMonth.format(formatter);
-
-        File monthlyPDF = execService.generatePDF(rawLatexFile, monthYear + "_MonthlyFinancialReport");
-
-        emailProducer.sendMail(monthYear + " Financial Report", "", monthlyPDF);
+    public File generate(YearlyReport report)
+            throws FileUtilException, PdfGenerationException, InterruptedException {
+        File rawLatexFile = populateYearlyTemplate(report);
+        try {
+            return pdfCompiler.compile(rawLatexFile, report.year() + "_YearlyFinancialReport");
+        } finally {
+            FileUtil.deleteIfExists(rawLatexFile);
+        }
     }
 
-    @Scheduled(cron = "0 0 1 1 1 *")
-    public void yearlyFinancialReportAutomatic() throws FileUtilException, ProcessExecutionServiceException, InterruptedException, MessagingException {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        yearlyFinancialReport(yesterday);
+    public File populateMonthlyTemplate(MonthlyReport report) throws FileUtilException {
+        return FileUtil.writeToFile(renderMonth(monthlyTemplate, report));
     }
 
-    public void yearlyFinancialReport(LocalDate targetYear) throws FileUtilException, ProcessExecutionServiceException, InterruptedException, MessagingException {
-        // List<Transaction> income = dao.getTransactionDataForYear();
-        // List<Transaction> expenses = dao.getExpenseDataForYear();
-        List<Transaction> income = new ArrayList<>();
-        List<Transaction> expenses = new ArrayList<>();
-
-        Total totals = processData(income, expenses);
-
-        File rawLatexFile = populateTemplate(yearlyTemplate, income, expenses, totals);
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy");
-        String year = targetYear.format(formatter);
-
-        File yearlyPDF = execService.generatePDF(rawLatexFile, year + "_YearlyFinancialReport");
-
-        emailProducer.sendMail(year + " Financial Report", "", yearlyPDF);
-    }
-
-    public Total processData(List<Transaction> transactions, List<Transaction> expenses) {
-        float revenueTotal = 0;
-        float tipTotal = 0;
-
-        for (Transaction transaction : transactions) {
-            revenueTotal += transaction.price().floatValue();
-            tipTotal += transaction.tip().floatValue();
+    public File populateYearlyTemplate(YearlyReport report) throws FileUtilException {
+        StringBuilder months = new StringBuilder();
+        for (MonthlyReport month : report.months()) {
+            months.append(renderMonth(monthSectionTemplate, month));
         }
 
-        float expenseTotal = 0;
-        for (Transaction expense : expenses) {
-            expenseTotal += expense.price().floatValue();
-        }
-
-        return new Total(revenueTotal, tipTotal, expenseTotal);
+        String reportContent = FileUtil.readString(yearlyTemplate)
+                .replace("%%year%%", report.year().toString())
+                .replace("%%totals%%", renderTotals(report.totals()))
+                .replace("%%months%%", months.toString());
+        return FileUtil.writeToFile(reportContent);
     }
 
-    // not super sold on the layout of these methods
-
-    public File populateTemplate(Resource template, List<Transaction> transactions, List<Transaction> expenses,
-            Total totals) throws FileUtilException {
-
-        String revenueTemplate = FileUtil.readString(this.revenueTemplate);
-        StringBuilder incomeBuilder = new StringBuilder();
-        for (Transaction transaction : transactions) {
-            incomeBuilder.append(String.format(revenueTemplate, escapeLatex(transaction.name()),
-                    transaction.price(), transaction.tip()));
+    private String renderMonth(Resource template, MonthlyReport report) throws FileUtilException {
+        String revenueRow = FileUtil.readString(revenueTemplate);
+        StringBuilder revenues = new StringBuilder();
+        for (Transaction transaction : report.transactions()) {
+            revenues.append(String.format(Locale.ROOT, revenueRow,
+                    escapeLatex(displayText(transaction.name())), transaction.price(), zeroIfNull(transaction.tip())));
+        }
+        if (revenues.isEmpty()) {
+            revenues.append("\\multicolumn{3}{c}{No revenue transactions} \\\\\n");
         }
 
-        String expenseTemplate = FileUtil.readString(this.expenseTemplate);
-        StringBuilder expenseBuilder = new StringBuilder();
-        for (Transaction transaction : expenses) {
-            expenseBuilder.append(String.format(expenseTemplate, escapeLatex(transaction.name()),
-                    transaction.price()));
+        String expenseRow = FileUtil.readString(expenseTemplate);
+        StringBuilder expenses = new StringBuilder();
+        for (Expense expense : report.expenses()) {
+            expenses.append(String.format(Locale.ROOT, expenseRow,
+                    escapeLatex(displayText(expense.reason())), expense.cost()));
+        }
+        if (expenses.isEmpty()) {
+            expenses.append("\\multicolumn{2}{c}{No expenses} \\\\\n");
         }
 
-        String totalsTemplate = FileUtil.readString(this.totalsTemplate);
-        String totalsString = String.format(totalsTemplate, totals.getRevenue(), totals.getTip(), totals.getExpenses(),
+        String payoutRow = FileUtil.readString(payoutTemplate);
+        StringBuilder payouts = new StringBuilder();
+        for (Payout payout : report.payouts()) {
+            payouts.append(String.format(Locale.ROOT, payoutRow, payout.amount()));
+        }
+        if (payouts.isEmpty()) {
+            payouts.append("No payouts \\\\\n");
+        }
+
+        String period = report.period().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+                + " " + report.period().getYear();
+        return FileUtil.readString(template)
+                .replace("%%period%%", period)
+                .replace("%%totals%%", renderTotals(report.totals()))
+                .replace("%%income%%", revenues.toString())
+                .replace("%%expense%%", expenses.toString())
+                .replace("%%payout%%", payouts.toString());
+    }
+
+    private String renderTotals(Total totals) throws FileUtilException {
+        return String.format(Locale.ROOT, FileUtil.readString(totalsTemplate),
+                totals.getRevenue(), totals.getTip(), totals.getExpenses(), totals.getPayouts(),
                 totals.getEstimatedTaxes(), totals.getTakeHome());
+    }
 
-        String templateContent = FileUtil.readString(template);
+    private BigDecimal zeroIfNull(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
 
-        String reportContent = templateContent.replace("%%income%%", incomeBuilder.toString());
-        reportContent = reportContent.replace("%%expense%%", expenseBuilder.toString());
-        reportContent = reportContent.replace("%%totals%%", totalsString);
-
-        File generatedLatexFile = FileUtil.writeToFile(reportContent);
-
-        return generatedLatexFile;
+    private String displayText(String value) {
+        return value == null || value.isBlank() ? "Unspecified" : value;
     }
 
     private String escapeLatex(String value) {
@@ -165,5 +161,4 @@ public class FinancialReportGenerator {
         }
         return escaped.toString();
     }
-
 }

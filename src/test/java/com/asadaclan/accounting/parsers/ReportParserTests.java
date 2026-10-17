@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
@@ -13,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import com.asadaclan.accounting.exceptions.CommandParseException;
 import com.asadaclan.accounting.exceptions.ParseErrorCode;
-import com.asadaclan.accounting.entities.Report;
+import com.asadaclan.accounting.entities.ReportRequest;
 import com.asadaclan.accounting.util.DateParser;
 
 class ReportParserTests {
@@ -26,20 +27,20 @@ class ReportParserTests {
         ReportParser beforeMonth = parserAt("2026-11-01T06:59:00Z");
         ReportParser atMonth = parserAt("2026-11-01T07:00:00Z");
 
-        assertEquals("2025-12", period(beforeYear, "report, month"));
-        assertEquals("2025", period(beforeYear, "report, year"));
-        assertEquals("2025-03", period(beforeYear, "report, month, 3"));
-        assertEquals("2024-12", period(beforeYear, "report, month, , 2024"));
+        assertEquals(LocalDate.of(2025, 12, 1), startDate(beforeYear, "report, month"));
+        assertEquals(LocalDate.of(2025, 1, 1), startDate(beforeYear, "report, year"));
+        assertEquals(LocalDate.of(2025, 3, 1), startDate(beforeYear, "report, month, 3"));
+        assertEquals(LocalDate.of(2024, 12, 1), startDate(beforeYear, "report, month, , 2024"));
 
-        assertEquals("2026-01", period(atYear, "report, month"));
-        assertEquals("2026", period(atYear, "report, year"));
-        assertEquals("2026-03", period(atYear, "report, month, march"));
-        assertEquals("2024-01", period(atYear, "report, month, , 2024"));
+        assertEquals(LocalDate.of(2026, 1, 1), startDate(atYear, "report, month"));
+        assertEquals(LocalDate.of(2026, 1, 1), startDate(atYear, "report, year"));
+        assertEquals(LocalDate.of(2026, 3, 1), startDate(atYear, "report, month, march"));
+        assertEquals(LocalDate.of(2024, 1, 1), startDate(atYear, "report, month, , 2024"));
 
-        assertEquals("2026-10", period(beforeMonth, "report, month"));
-        assertEquals("2026-11", period(atMonth, "report, month"));
-        assertEquals("2026", period(beforeMonth, "report, year"));
-        assertEquals("2026", period(atMonth, "report, year"));
+        assertEquals(LocalDate.of(2026, 10, 1), startDate(beforeMonth, "report, month"));
+        assertEquals(LocalDate.of(2026, 11, 1), startDate(atMonth, "report, month"));
+        assertEquals(LocalDate.of(2026, 1, 1), startDate(beforeMonth, "report, year"));
+        assertEquals(LocalDate.of(2026, 1, 1), startDate(atMonth, "report, year"));
     }
 
     @Test
@@ -65,9 +66,27 @@ class ReportParserTests {
         assertEquals("year", invalidYear.fieldName());
     }
 
-    private static String period(ReportParser parser, String message) {
-        Report command = parser.parse(fields(message));
-        return command.reportPeriod().orElseThrow();
+    @Test
+    void setsInclusiveStartAndEndDatesForMonthlyReports() {
+        ReportRequest report = parserAt("2026-10-09T19:00:00Z")
+                .parse(fields("report, month, february, 2024"));
+
+        assertEquals(LocalDate.of(2024, 2, 1), report.startDate());
+        assertEquals(LocalDate.of(2024, 2, 29), report.endDate());
+    }
+
+    @Test
+    void setsInclusiveStartAndEndDatesForYearlyReports() {
+        ReportRequest report = parserAt("2026-10-09T19:00:00Z")
+                .parse(fields("report, year, 2024"));
+
+        assertEquals(LocalDate.of(2024, 1, 1), report.startDate());
+        assertEquals(LocalDate.of(2024, 12, 31), report.endDate());
+    }
+
+    private static LocalDate startDate(ReportParser parser, String message) {
+        ReportRequest command = parser.parse(fields(message));
+        return command.startDate();
     }
 
     private static ReportParser parserAt(String instant) {

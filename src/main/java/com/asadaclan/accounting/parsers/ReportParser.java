@@ -6,20 +6,20 @@ import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
 import com.asadaclan.accounting.exceptions.CommandParseException;
 import com.asadaclan.accounting.exceptions.ParseErrorCode;
-import com.asadaclan.accounting.entities.Report;
+import com.asadaclan.accounting.entities.ReportRequest;
 import com.asadaclan.accounting.util.DateParser;
 
 /**
  * Parses one {@code report, month, month?, year?} or {@code report, year, year?} command.
  */
 @Component
-public class ReportParser implements Parser<Report> {
+public class ReportParser implements Parser<ReportRequest> {
     private final DateParser dateParser;
 
     public ReportParser(DateParser dateParser) {
@@ -27,7 +27,7 @@ public class ReportParser implements Parser<Report> {
     }
 
     @Override
-    public Report parse(List<String> messageParts) {
+    public ReportRequest parse(List<String> messageParts, UUID businessId) {
         String[] parts = messageParts == null ? null : messageParts.toArray(String[]::new);
         if (parts == null || parts.length == 0) {
             throw new CommandParseException(
@@ -53,8 +53,8 @@ public class ReportParser implements Parser<Report> {
         }
 
         LocalDate businessDate = dateParser.businessDate();
-        String reportType = fields[1].toLowerCase(Locale.ROOT);
-        if (reportType.equals("month")) {
+        String period = fields[1].toLowerCase(Locale.ROOT);
+        if (period.equals("month")) {
             if (fields.length > 4) {
                 throw new CommandParseException(
                         ParseErrorCode.WRONG_ARGUMENT_COUNT,
@@ -69,11 +69,13 @@ public class ReportParser implements Parser<Report> {
             Year year = rawYear.isEmpty()
                     ? Year.of(businessDate.getYear())
                     : parseYear(rawYear, 3);
-            YearMonth period = YearMonth.of(year.getValue(), month);
-            return new Report("month", Optional.of(period.toString()));
+            YearMonth targetMonth = YearMonth.of(year.getValue(), month);
+            return new ReportRequest(null, businessId,
+                    targetMonth.atDay(1),
+                    targetMonth.atEndOfMonth());
         }
 
-        if (reportType.equals("year")) {
+        if (period.equals("year")) {
             if (fields.length > 3) {
                 throw new CommandParseException(
                         ParseErrorCode.WRONG_ARGUMENT_COUNT,
@@ -84,7 +86,9 @@ public class ReportParser implements Parser<Report> {
             Year year = rawYear.isEmpty()
                     ? Year.of(businessDate.getYear())
                     : parseYear(rawYear, 2);
-            return new Report("year", Optional.of(year.toString()));
+            return new ReportRequest(null, businessId,
+                    year.atDay(1),
+                    year.atMonth(12).atEndOfMonth());
         }
 
         throw new CommandParseException(
