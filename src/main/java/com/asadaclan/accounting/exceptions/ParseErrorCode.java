@@ -1,0 +1,14 @@
+package com.asadaclan.accounting.exceptions;
+
+public enum ParseErrorCode {
+    EMPTY_MESSAGE,
+    UNKNOWN_ACTION,
+    WRONG_ARGUMENT_COUNT,
+    MISSING_REQUIRED_FIELD,
+    INVALID_AMOUNT,
+    INVALID_DATE,
+    INVALID_MONTH,
+    INVALID_YEAR,
+    INVALID_PERIOD,
+    INVALID_TRANSACTION_ID
+}

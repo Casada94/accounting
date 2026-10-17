@@ -4,10 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,7 +17,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 
 import com.asadaclan.accounting.models.Total;
-import com.asadaclan.accounting.models.Transaction;
+import com.asadaclan.accounting.entities.Transaction;
 import com.asadaclan.accounting.producers.EmailProducer;
 import com.asadaclan.accounting.service.ProcessExecutionService;
 import com.asadaclan.accounting.util.FileUtil;
@@ -43,8 +44,10 @@ class FinancialReportGeneratorTests {
                 expenseTemplate,
                 totalsTemplate);
 
-        Transaction revenue = new Transaction("consulting & support", 100.0f, Optional.of(10.0f));
-        Transaction expense = new Transaction("supplies", -20.0f, Optional.empty());
+        Transaction revenue = new Transaction(
+                new BigDecimal("100.00"), new BigDecimal("10.00"), "consulting & support", LocalDate.of(2026, 10, 14));
+        Transaction expense = new Transaction(
+                new BigDecimal("-20.00"), BigDecimal.ZERO, "supplies", LocalDate.of(2026, 10, 14));
         Total totals = generator.processData(List.of(revenue), List.of(expense));
 
         File populatedReport = generator.populateTemplate(

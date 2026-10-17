@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import com.asadaclan.accounting.exceptions.FileUtilException;
 import com.asadaclan.accounting.exceptions.ProcessExecutionServiceException;
 import com.asadaclan.accounting.models.Total;
-import com.asadaclan.accounting.models.Transaction;
+import com.asadaclan.accounting.entities.Transaction;
 import com.asadaclan.accounting.producers.EmailProducer;
 import com.asadaclan.accounting.service.ProcessExecutionService;
 import com.asadaclan.accounting.util.FileUtil;
@@ -100,13 +100,13 @@ public class FinancialReportGenerator {
         float tipTotal = 0;
 
         for (Transaction transaction : transactions) {
-            revenueTotal += transaction.transactionAmount();
-            tipTotal += transaction.tipAmount().orElse(0.0f);
+            revenueTotal += transaction.price().floatValue();
+            tipTotal += transaction.tip().floatValue();
         }
 
         float expenseTotal = 0;
         for (Transaction expense : expenses) {
-            expenseTotal += expense.transactionAmount();
+            expenseTotal += expense.price().floatValue();
         }
 
         return new Total(revenueTotal, tipTotal, expenseTotal);
@@ -120,15 +120,15 @@ public class FinancialReportGenerator {
         String revenueTemplate = FileUtil.readString(this.revenueTemplate);
         StringBuilder incomeBuilder = new StringBuilder();
         for (Transaction transaction : transactions) {
-            incomeBuilder.append(String.format(revenueTemplate, escapeLatex(transaction.items()),
-                    transaction.transactionAmount(), transaction.tipAmount().orElse(0.0f)));
+            incomeBuilder.append(String.format(revenueTemplate, escapeLatex(transaction.name()),
+                    transaction.price(), transaction.tip()));
         }
 
         String expenseTemplate = FileUtil.readString(this.expenseTemplate);
         StringBuilder expenseBuilder = new StringBuilder();
         for (Transaction transaction : expenses) {
-            expenseBuilder.append(String.format(expenseTemplate, escapeLatex(transaction.items()),
-                    transaction.transactionAmount()));
+            expenseBuilder.append(String.format(expenseTemplate, escapeLatex(transaction.name()),
+                    transaction.price()));
         }
 
         String totalsTemplate = FileUtil.readString(this.totalsTemplate);

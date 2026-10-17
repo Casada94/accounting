@@ -1,5 +1,7 @@
 package com.asadaclan.accounting.parsers;
 
-interface Parser<T> {
-    T parse(String[] parts);
+import java.util.List;
+
+public interface Parser<T> {
+    T parse(List<String> messageParts);
 }
