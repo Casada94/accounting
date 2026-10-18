@@ -48,3 +48,10 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+tasks.register('deploy', Exec) {
+	group = 'deployment'
+	description = 'Exports the accounting Docker image and copies the Compose file.'
+	workingDir = projectDir
+	commandLine 'bash', file('deploy.sh').absolutePath
+}
