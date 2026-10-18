@@ -9,13 +9,13 @@ import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table("report")
+@Table("reports")
 public final class ReportRequest implements Persistable<UUID> {
     @Id
     private final UUID id;
 
     @Column("business_id")
-    private final UUID businessId;
+    private final String businessId;
 
     @Column("start_date")
     private final LocalDate startDate;
@@ -28,7 +28,7 @@ public final class ReportRequest implements Persistable<UUID> {
     }
 
     @PersistenceCreator
-    public ReportRequest(UUID id, UUID businessId, LocalDate startDate, LocalDate endDate) {
+    public ReportRequest(UUID id, String businessId, LocalDate startDate, LocalDate endDate) {
         this.id = id;
         this.businessId = businessId;
         this.startDate = startDate;
@@ -53,7 +53,7 @@ public final class ReportRequest implements Persistable<UUID> {
         return id;
     }
 
-    public UUID businessId() {
+    public String businessId() {
         return businessId;
     }
 

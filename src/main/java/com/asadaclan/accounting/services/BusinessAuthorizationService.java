@@ -1,7 +1,5 @@
 package com.asadaclan.accounting.services;
 
-import java.util.UUID;
-
 import org.springframework.stereotype.Service;
 
 import com.asadaclan.accounting.entities.Business;
@@ -16,13 +14,12 @@ public class BusinessAuthorizationService {
         this.businessRepository = businessRepository;
     }
 
-    public UUID requireBusinessId(String phoneNumber) {
+    public Business requireBusiness(String phoneNumber) {
         if (phoneNumber == null || phoneNumber.isBlank()) {
             throw new UnregisteredPhoneNumberException();
         }
 
-        return businessRepository.findByPhoneNumber(phoneNumber.trim())
-                .map(Business::id)
+        return businessRepository.findById(phoneNumber.trim())
                 .orElseThrow(UnregisteredPhoneNumberException::new);
     }
 }

@@ -17,7 +17,7 @@ class HelpServiceTests {
     // private static final String QUERY_MESSAGE = "Query: query, queryType, args?";
     private static final String REPORT_MESSAGE =
             "Report: report, month, month?, year? OR report, year, year?";
-    private static final String UNDO_MESSAGE = "Undo: undo, transactionId";
+    private static final String UNDO_MESSAGE = "Undo: undo, entryType, entryId";
 
     private final HelpService helpService = new HelpService(
             TRANSACTION_MESSAGE,

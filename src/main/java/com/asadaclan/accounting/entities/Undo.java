@@ -8,30 +8,36 @@ import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table("undo")
+import com.asadaclan.accounting.enums.LedgerEntryType;
+
+@Table("undos")
 public final class Undo implements Persistable<UUID> {
     @Id
     private final UUID id;
 
     @Column("business_id")
-    private final UUID businessId;
+    private final String businessId;
 
-    @Column("transaction_id")
-    private final UUID transactionId;
+    @Column("entry_type")
+    private final LedgerEntryType entryType;
 
-    public Undo(UUID transactionId) {
-        this(null, null, transactionId);
+    @Column("entry_id")
+    private final UUID entryId;
+
+    public Undo(LedgerEntryType entryType, UUID entryId) {
+        this(null, null, entryType, entryId);
     }
 
     @PersistenceCreator
-    public Undo(UUID id, UUID businessId, UUID transactionId) {
+    public Undo(UUID id, String businessId, LedgerEntryType entryType, UUID entryId) {
         this.id = id;
         this.businessId = businessId;
-        this.transactionId = transactionId;
+        this.entryType = entryType;
+        this.entryId = entryId;
     }
 
     public Undo withId(UUID id) {
-        return new Undo(id, businessId, transactionId);
+        return new Undo(id, businessId, entryType, entryId);
     }
 
     @Override
@@ -48,11 +54,15 @@ public final class Undo implements Persistable<UUID> {
         return id;
     }
 
-    public UUID businessId() {
+    public String businessId() {
         return businessId;
     }
 
-    public UUID transactionId() {
-        return transactionId;
+    public LedgerEntryType entryType() {
+        return entryType;
+    }
+
+    public UUID entryId() {
+        return entryId;
     }
 }

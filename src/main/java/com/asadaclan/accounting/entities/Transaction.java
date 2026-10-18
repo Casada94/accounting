@@ -10,13 +10,13 @@ import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table("accounting_transaction")
+@Table("transactions")
 public final class Transaction implements Persistable<UUID> {
     @Id
     private final UUID id;
 
     @Column("business_id")
-    private final UUID businessId;
+    private final String businessId;
 
     private final BigDecimal price;
 
@@ -32,7 +32,7 @@ public final class Transaction implements Persistable<UUID> {
     }
 
     @PersistenceCreator
-    public Transaction(UUID id, UUID businessId, BigDecimal price, BigDecimal tip, String name, LocalDate date) {
+    public Transaction(UUID id, String businessId, BigDecimal price, BigDecimal tip, String name, LocalDate date) {
         this.id = id;
         this.businessId = businessId;
         this.price = price;
@@ -59,7 +59,7 @@ public final class Transaction implements Persistable<UUID> {
         return id;
     }
 
-    public UUID businessId() {
+    public String businessId() {
         return businessId;
     }
 

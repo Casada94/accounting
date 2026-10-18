@@ -2,13 +2,13 @@ package com.asadaclan.accounting.controllers;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.asadaclan.accounting.entities.Business;
 import com.asadaclan.accounting.entities.Expense;
 import com.asadaclan.accounting.entities.Help;
 import com.asadaclan.accounting.entities.Payout;
@@ -21,6 +21,7 @@ import com.asadaclan.accounting.models.TwimlResponse;
 import com.asadaclan.accounting.services.BusinessAuthorizationService;
 import com.asadaclan.accounting.services.MessageDelegationService;
 import com.asadaclan.accounting.services.ParserDelegationService;
+import com.asadaclan.accounting.services.ReportService;
 
 @RestController
 public class SmsController {
@@ -28,19 +29,23 @@ public class SmsController {
     private final MessageDelegationService messageDelegationService;
     private final ParserDelegationService parserDelegationService;
     private final BusinessAuthorizationService businessAuthorizationService;
+    private final ReportService reportService;
 
     public SmsController(MessageDelegationService messageDelegationService,
             ParserDelegationService parserDelegationService,
-            BusinessAuthorizationService businessAuthorizationService) {
+            BusinessAuthorizationService businessAuthorizationService,
+            ReportService reportService) {
         this.messageDelegationService = messageDelegationService;
         this.parserDelegationService = parserDelegationService;
         this.businessAuthorizationService = businessAuthorizationService;
+        this.reportService = reportService;
     }
 
     @PostMapping(value = "/sms", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.APPLICATION_XML_VALUE)
     public TwimlResponse receiveSms(@ModelAttribute TwilioInboundMessage message) {
-        UUID businessId = businessAuthorizationService.requireBusinessId(message.from());
+        Business business = businessAuthorizationService.requireBusiness(message.from());
+        String businessId = business.phoneNumber();
 
         String body = message.body();
         if (body == null || body.isBlank()) {
@@ -70,7 +75,7 @@ public class SmsController {
             case Report -> {
                 ReportRequest report = (ReportRequest) parserDelegationService.delegate(
                         messageParts, MessageAction.Report, businessId);
-                messageDelegationService.delegate(report);
+                reportService.generateReport(business, report);
                 yield "Please check your email for your financial report.";
             }
             case Undo -> {

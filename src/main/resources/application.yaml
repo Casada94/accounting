@@ -5,9 +5,6 @@ spring:
 accounting:
   time-zone: America/Chicago
 
-email:
-  recipients: ${EMAIL_RECIPIENTS:}
-
 help:
   messages:
     transaction: "Tattoo/Jewelry: tattoo, price, tip, name?, date?"
@@ -15,7 +12,7 @@ help:
     expense: "Expense: expense, cost, reason?, date?"
     # query: "Query: query, queryType, args?"
     report: "Report: report, month, month?, year? OR report, year, year?"
-    undo: "Undo: undo, transactionId"
+    undo: "Undo: undo, entryType, entryId"
 
 reporting:
   pdf:

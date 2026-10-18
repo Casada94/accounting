@@ -17,7 +17,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +28,9 @@ import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConve
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.asadaclan.accounting.entities.Business;
 import com.asadaclan.accounting.entities.Help;
+import com.asadaclan.accounting.entities.ReportRequest;
 import com.asadaclan.accounting.entities.Transaction;
 import com.asadaclan.accounting.enums.MessageAction;
 import com.asadaclan.accounting.exceptions.CommandParseException;
@@ -39,11 +40,14 @@ import com.asadaclan.accounting.models.TwilioInboundMessage;
 import com.asadaclan.accounting.services.BusinessAuthorizationService;
 import com.asadaclan.accounting.services.MessageDelegationService;
 import com.asadaclan.accounting.services.ParserDelegationService;
+import com.asadaclan.accounting.services.ReportService;
 
 @ExtendWith(MockitoExtension.class)
 class SmsControllerTests {
     private static final String AUTHORIZED_PHONE_NUMBER = "+15551234567";
-    private static final UUID BUSINESS_ID = UUID.fromString("4c136e2a-9d77-4bc3-8aa0-49a048f7f864");
+    private static final String BUSINESS_ID = AUTHORIZED_PHONE_NUMBER;
+    private static final Business BUSINESS = new Business(
+            AUTHORIZED_PHONE_NUMBER, "Example Studio", "owner@example.com");
 
     @Mock
     private MessageDelegationService messageDelegationService;
@@ -54,15 +58,18 @@ class SmsControllerTests {
     @Mock
     private BusinessAuthorizationService businessAuthorizationService;
 
+    @Mock
+    private ReportService reportService;
+
     private SmsController controller;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         controller = new SmsController(messageDelegationService, parserDelegationService,
-                businessAuthorizationService);
-        lenient().when(businessAuthorizationService.requireBusinessId(AUTHORIZED_PHONE_NUMBER))
-                .thenReturn(BUSINESS_ID);
+                businessAuthorizationService, reportService);
+        lenient().when(businessAuthorizationService.requireBusiness(AUTHORIZED_PHONE_NUMBER))
+                .thenReturn(BUSINESS);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new SmsExceptionHandler())
                 .setMessageConverters(new MappingJackson2XmlHttpMessageConverter())
@@ -85,7 +92,7 @@ class SmsControllerTests {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_XML))
                 .andExpect(xpath("/Response/Message").string("transactionId: 3f1a8c2e"));
 
-        verify(businessAuthorizationService).requireBusinessId(AUTHORIZED_PHONE_NUMBER);
+        verify(businessAuthorizationService).requireBusiness(AUTHORIZED_PHONE_NUMBER);
     }
 
     @Test
@@ -181,8 +188,27 @@ class SmsControllerTests {
     }
 
     @Test
+    void reportsReceiveTheAuthorizedBusinessWhileParsingUsesOnlyItsId() throws Exception {
+        ReportRequest report = new ReportRequest(
+                null, BUSINESS_ID, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31));
+        when(parserDelegationService.delegate(anyList(), eq(MessageAction.Report), eq(BUSINESS_ID)))
+                .thenReturn(report);
+
+        mockMvc.perform(post("/sms")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("From", AUTHORIZED_PHONE_NUMBER)
+                        .param("Body", "report, month, 10, 2026"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("/Response/Message")
+                        .string("Please check your email for your financial report."));
+
+        verify(parserDelegationService).delegate(anyList(), eq(MessageAction.Report), eq(BUSINESS_ID));
+        verify(reportService).generateReport(BUSINESS, report);
+    }
+
+    @Test
     void unregisteredSenderIsRejectedBeforeTheMessageIsParsed() throws Exception {
-        when(businessAuthorizationService.requireBusinessId(AUTHORIZED_PHONE_NUMBER))
+        when(businessAuthorizationService.requireBusiness(AUTHORIZED_PHONE_NUMBER))
                 .thenThrow(new UnregisteredPhoneNumberException());
 
         mockMvc.perform(post("/sms")

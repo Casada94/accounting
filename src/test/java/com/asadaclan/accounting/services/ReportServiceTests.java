@@ -1,12 +1,15 @@
 package com.asadaclan.accounting.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -47,7 +50,9 @@ import com.asadaclan.accounting.util.DateParser;
 
 class ReportServiceTests {
 
-    private static final UUID BUSINESS_ID = UUID.fromString("29ddd3b8-f41a-4e96-88cb-713123f69e84");
+    private static final String BUSINESS_ID = "+15555550100";
+    private static final String BUSINESS_EMAIL = "owner@example.com";
+    private static final Business BUSINESS = new Business(BUSINESS_ID, "Example Studio", BUSINESS_EMAIL);
 
     private ReportRepository reportRepository;
     private FinancialReportGenerator reportGenerator;
@@ -80,15 +85,14 @@ class ReportServiceTests {
 
     @Test
     void monthlyScheduleGeneratesPreviousMonthForEveryBusiness() {
-        Business business = new Business(BUSINESS_ID, "+15555550100");
-        when(businessRepository.findAll()).thenReturn(List.of(business));
+        when(businessRepository.findAll()).thenReturn(List.of(BUSINESS));
         ReportService spy = spy(reportService);
-        doNothing().when(spy).generateReport(any(ReportRequest.class));
+        doNothing().when(spy).generateReport(any(Business.class), any(ReportRequest.class));
 
         spy.generateMonthlyReport();
 
         ArgumentCaptor<ReportRequest> reportCaptor = ArgumentCaptor.forClass(ReportRequest.class);
-        verify(spy).generateReport(reportCaptor.capture());
+        verify(spy).generateReport(eq(BUSINESS), reportCaptor.capture());
         assertThat(reportCaptor.getValue().businessId()).isEqualTo(BUSINESS_ID);
         assertThat(reportCaptor.getValue().startDate()).isEqualTo(LocalDate.of(2026, 12, 1));
         assertThat(reportCaptor.getValue().endDate()).isEqualTo(LocalDate.of(2026, 12, 31));
@@ -106,15 +110,14 @@ class ReportServiceTests {
 
     @Test
     void yearlyScheduleGeneratesPreviousYearForEveryBusiness() {
-        Business business = new Business(BUSINESS_ID, "+15555550100");
-        when(businessRepository.findAll()).thenReturn(List.of(business));
+        when(businessRepository.findAll()).thenReturn(List.of(BUSINESS));
         ReportService spy = spy(reportService);
-        doNothing().when(spy).generateReport(any(ReportRequest.class));
+        doNothing().when(spy).generateReport(any(Business.class), any(ReportRequest.class));
 
         spy.generateYearlyReport();
 
         ArgumentCaptor<ReportRequest> reportCaptor = ArgumentCaptor.forClass(ReportRequest.class);
-        verify(spy).generateReport(reportCaptor.capture());
+        verify(spy).generateReport(eq(BUSINESS), reportCaptor.capture());
         assertThat(reportCaptor.getValue().businessId()).isEqualTo(BUSINESS_ID);
         assertThat(reportCaptor.getValue().startDate()).isEqualTo(LocalDate.of(2026, 1, 1));
         assertThat(reportCaptor.getValue().endDate()).isEqualTo(LocalDate.of(2026, 12, 31));
@@ -137,13 +140,13 @@ class ReportServiceTests {
                 new BigDecimal("100.00"), new BigDecimal("10.00"), "Client", LocalDate.of(2026, 2, 3));
         Expense expense = new Expense(new BigDecimal("20.00"), "Ink", LocalDate.of(2026, 2, 4));
         Payout payout = new Payout(new BigDecimal("30.00"), LocalDate.of(2026, 2, 5));
-        when(transactionRepository.findAllByBusinessIdAndDateBetweenOrderByDateAsc(
+        when(transactionRepository.findAllNotUndoneByBusinessIdAndDateBetweenOrderByDateAsc(
                 BUSINESS_ID, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 28)))
                 .thenReturn(List.of(transaction));
-        when(expenseRepository.findAllByBusinessIdAndDateBetweenOrderByDateAsc(
+        when(expenseRepository.findAllNotUndoneByBusinessIdAndDateBetweenOrderByDateAsc(
                 BUSINESS_ID, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 28)))
                 .thenReturn(List.of(expense));
-        when(payoutRepository.findAllByBusinessIdAndDateBetweenOrderByDateAsc(
+        when(payoutRepository.findAllNotUndoneByBusinessIdAndDateBetweenOrderByDateAsc(
                 BUSINESS_ID, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 28)))
                 .thenReturn(List.of(payout));
 
@@ -168,12 +171,12 @@ class ReportServiceTests {
         assertThat(report.expenses()).hasSize(12).allSatisfy(entries -> assertThat(entries).isEmpty());
         assertThat(report.payouts()).hasSize(12).allSatisfy(entries -> assertThat(entries).isEmpty());
         verify(transactionRepository, times(12))
-                .findAllByBusinessIdAndDateBetweenOrderByDateAsc(any(), any(), any());
+                .findAllNotUndoneByBusinessIdAndDateBetweenOrderByDateAsc(any(), any(), any());
         verify(expenseRepository, times(12))
-                .findAllByBusinessIdAndDateBetweenOrderByDateAsc(any(), any(), any());
+                .findAllNotUndoneByBusinessIdAndDateBetweenOrderByDateAsc(any(), any(), any());
         verify(payoutRepository, times(12))
-                .findAllByBusinessIdAndDateBetweenOrderByDateAsc(any(), any(), any());
-        verify(transactionRepository).findAllByBusinessIdAndDateBetweenOrderByDateAsc(
+                .findAllNotUndoneByBusinessIdAndDateBetweenOrderByDateAsc(any(), any(), any());
+        verify(transactionRepository).findAllNotUndoneByBusinessIdAndDateBetweenOrderByDateAsc(
                 BUSINESS_ID, LocalDate.of(2024, 2, 1), LocalDate.of(2024, 2, 29));
     }
 
@@ -184,12 +187,25 @@ class ReportServiceTests {
         File file = Files.createTempFile(tempDirectory, "yearly-report-", ".pdf").toFile();
         when(reportGenerator.generate(any(YearlyReport.class))).thenReturn(file);
 
-        reportService.generateReport(request);
+        reportService.generateReport(BUSINESS, request);
 
         verify(reportGenerator).generate(any(YearlyReport.class));
         verify(reportGenerator, times(0)).generate(any(MonthlyReport.class));
-        verify(emailProducer).sendMail("2026 Financial Report", "Your report is attached.", file);
+        verify(emailProducer).sendMail(
+                BUSINESS_EMAIL, "2026 Financial Report", "Your report is attached.", file);
         verify(reportRepository).save(request);
         assertThat(file).doesNotExist();
+    }
+
+    @Test
+    void rejectsAReportRequestForADifferentBusiness() {
+        ReportRequest request = new ReportRequest(
+                null, "+15555550199", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31));
+
+        assertThatThrownBy(() -> reportService.generateReport(BUSINESS, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must match");
+
+        verifyNoInteractions(reportGenerator, emailProducer, reportRepository);
     }
 }

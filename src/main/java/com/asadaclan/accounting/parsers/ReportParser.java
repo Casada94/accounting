@@ -6,7 +6,6 @@ import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
@@ -27,7 +26,7 @@ public class ReportParser implements Parser<ReportRequest> {
     }
 
     @Override
-    public ReportRequest parse(List<String> messageParts, UUID businessId) {
+    public ReportRequest parse(List<String> messageParts, String businessId) {
         String[] parts = messageParts == null ? null : messageParts.toArray(String[]::new);
         if (parts == null || parts.length == 0) {
             throw new CommandParseException(

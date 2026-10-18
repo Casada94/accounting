@@ -1,7 +1,6 @@
 package com.asadaclan.accounting.services;
 
 import java.util.List;
-import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -38,7 +37,7 @@ public class ParserDelegationService {
         this.helpParser = helpParser;
     }
 
-    public Object delegate(List<String> messageParts, MessageAction action, UUID businessId) {
+    public Object delegate(List<String> messageParts, MessageAction action, String businessId) {
         return switch (action) {
             case Transaction -> transactionParser.parse(messageParts, businessId);
             case Payout -> payoutParser.parse(messageParts, businessId);

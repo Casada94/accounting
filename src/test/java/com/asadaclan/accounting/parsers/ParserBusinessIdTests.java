@@ -6,7 +6,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
@@ -15,10 +14,11 @@ import com.asadaclan.accounting.entities.Payout;
 import com.asadaclan.accounting.entities.ReportRequest;
 import com.asadaclan.accounting.entities.Transaction;
 import com.asadaclan.accounting.entities.Undo;
+import com.asadaclan.accounting.enums.LedgerEntryType;
 import com.asadaclan.accounting.util.DateParser;
 
 class ParserBusinessIdTests {
-    private static final UUID BUSINESS_ID = UUID.fromString("4c136e2a-9d77-4bc3-8aa0-49a048f7f864");
+    private static final String BUSINESS_ID = "+15551234567";
     private static final DateParser DATE_PARSER = new DateParser(
             Clock.fixed(Instant.parse("2026-10-17T12:00:00Z"), ZoneOffset.UTC));
 
@@ -57,8 +57,9 @@ class ParserBusinessIdTests {
     @Test
     void undoIncludesTheAuthorizedBusinessId() {
         Undo undo = new UndoParser().parse(List.of(
-                "undo", "3f1a6c2e-8b4d-4e7a-9c15-2d6f0a8b1e47"), BUSINESS_ID);
+                "undo", "expense", "3f1a6c2e-8b4d-4e7a-9c15-2d6f0a8b1e47"), BUSINESS_ID);
 
         assertEquals(BUSINESS_ID, undo.businessId());
+        assertEquals(LedgerEntryType.EXPENSE, undo.entryType());
     }
 }

@@ -8,7 +8,6 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -66,8 +65,8 @@ public class ReportService {
     public void generateMonthlyReport() {
         YearMonth targetMonth = YearMonth.from(dateParser.businessDate()).minusMonths(1);
         for (Business business : businessRepository.findAll()) {
-            generateReport(new ReportRequest(
-                    null, business.id(), targetMonth.atDay(1), targetMonth.atEndOfMonth()));
+            generateReport(business, new ReportRequest(
+                    null, business.phoneNumber(), targetMonth.atDay(1), targetMonth.atEndOfMonth()));
         }
     }
 
@@ -75,14 +74,22 @@ public class ReportService {
     public void generateYearlyReport() {
         Year targetYear = Year.from(dateParser.businessDate()).minusYears(1);
         for (Business business : businessRepository.findAll()) {
-            generateReport(new ReportRequest(
-                    null, business.id(), targetYear.atDay(1), targetYear.atMonth(12).atEndOfMonth()));
+            generateReport(business, new ReportRequest(
+                    null, business.phoneNumber(), targetYear.atDay(1), targetYear.atMonth(12).atEndOfMonth()));
         }
     }
 
-    public void generateReport(ReportRequest request) {
+    public void generateReport(Business business, ReportRequest request) {
+        Objects.requireNonNull(business, "business must not be null");
         Objects.requireNonNull(request, "report request must not be null");
-        UUID businessId = Objects.requireNonNull(request.businessId(), "report businessId must not be null");
+        String businessId = Objects.requireNonNull(business.phoneNumber(), "business phone number must not be null");
+        if (!businessId.equals(request.businessId())) {
+            throw new IllegalArgumentException("report businessId must match the supplied business");
+        }
+        String recipient = Objects.requireNonNull(business.email(), "business email must not be null");
+        if (recipient.isBlank()) {
+            throw new IllegalArgumentException("business email must not be blank");
+        }
 
         File reportFile = null;
         try {
@@ -99,7 +106,7 @@ public class ReportService {
                 throw new IllegalArgumentException("Report range must be one complete calendar month or year");
             }
 
-            emailProducer.sendMail(subject, "Your report is attached.", reportFile);
+            emailProducer.sendMail(recipient, subject, "Your report is attached.", reportFile);
             reportRepository.save(request);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
@@ -113,24 +120,24 @@ public class ReportService {
         }
     }
 
-    public MonthlyReport buildMonth(UUID businessId, YearMonth month) {
+    public MonthlyReport buildMonth(String businessId, YearMonth month) {
         Objects.requireNonNull(businessId, "businessId must not be null");
         Objects.requireNonNull(month, "month must not be null");
 
         LocalDate startDate = month.atDay(1);
         LocalDate endDate = month.atEndOfMonth();
         List<Transaction> transactions = transactionRepo
-                .findAllByBusinessIdAndDateBetweenOrderByDateAsc(businessId, startDate, endDate);
+                .findAllNotUndoneByBusinessIdAndDateBetweenOrderByDateAsc(businessId, startDate, endDate);
         List<Expense> expenses = expenseRepo
-                .findAllByBusinessIdAndDateBetweenOrderByDateAsc(businessId, startDate, endDate);
+                .findAllNotUndoneByBusinessIdAndDateBetweenOrderByDateAsc(businessId, startDate, endDate);
         List<Payout> payouts = payoutRepo
-                .findAllByBusinessIdAndDateBetweenOrderByDateAsc(businessId, startDate, endDate);
+                .findAllNotUndoneByBusinessIdAndDateBetweenOrderByDateAsc(businessId, startDate, endDate);
 
         return new MonthlyReport(month, transactions, expenses, payouts,
                 calculateTotals(transactions, expenses, payouts));
     }
 
-    public YearlyReport buildYear(UUID businessId, Year year) {
+    public YearlyReport buildYear(String businessId, Year year) {
         Objects.requireNonNull(businessId, "businessId must not be null");
         Objects.requireNonNull(year, "year must not be null");
 

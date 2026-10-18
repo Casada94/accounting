@@ -8,21 +8,23 @@ import org.springframework.stereotype.Component;
 import com.asadaclan.accounting.exceptions.CommandParseException;
 import com.asadaclan.accounting.exceptions.ParseErrorCode;
 import com.asadaclan.accounting.entities.Undo;
+import com.asadaclan.accounting.enums.LedgerEntryType;
 
 /**
- * Parses one {@code undo, transactionId} command from comma-separated fields.
- * Parsing validates the id's syntax only. It does not look up, reverse, or delete a transaction.
+ * Parses one {@code undo, entryType, entryId} command from comma-separated fields.
+ * Parsing validates the type and id syntax only. It does not look up, reverse, or delete an entry.
  */
 @Component
 public final class UndoParser implements Parser<Undo> {
     private static final String ID_PATTERN =
             "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
     private static final int ACTION_INDEX = 0;
-    private static final int TRANSACTION_ID_INDEX = 1;
-    private static final int MAX_FIELDS = 2;
+    private static final int ENTRY_TYPE_INDEX = 1;
+    private static final int ENTRY_ID_INDEX = 2;
+    private static final int MAX_FIELDS = 3;
 
     @Override
-    public Undo parse(List<String> messageParts, UUID businessId) {
+    public Undo parse(List<String> messageParts, String businessId) {
         String[] parts = messageParts == null ? null : messageParts.toArray(String[]::new);
         if (parts == null || parts.length == 0) {
             throw error(ParseErrorCode.EMPTY_MESSAGE, ACTION_INDEX, "action", "Message must not be blank");
@@ -31,11 +33,12 @@ public final class UndoParser implements Parser<Undo> {
         String[] fields = normalize(parts);
         if (fields.length > MAX_FIELDS) {
             throw error(ParseErrorCode.WRONG_ARGUMENT_COUNT, -1, null,
-                    "Expected: undo, transactionId");
+                    "Expected: undo, entryType, entryId");
         }
 
-        UUID transactionId = parseTransactionId(required(fields, TRANSACTION_ID_INDEX, "transactionId"));
-        return new Undo(null, businessId, transactionId);
+        LedgerEntryType entryType = parseEntryType(required(fields, ENTRY_TYPE_INDEX, "entryType"));
+        UUID entryId = parseEntryId(required(fields, ENTRY_ID_INDEX, "entryId"));
+        return new Undo(null, businessId, entryType, entryId);
     }
 
     private String[] normalize(String[] parts) {
@@ -51,14 +54,23 @@ public final class UndoParser implements Parser<Undo> {
         return fields;
     }
 
-    private UUID parseTransactionId(String raw) {
+    private LedgerEntryType parseEntryType(String raw) {
+        try {
+            return LedgerEntryType.from(raw);
+        } catch (IllegalArgumentException exception) {
+            throw error(ParseErrorCode.INVALID_ENTRY_TYPE, ENTRY_TYPE_INDEX, "entryType",
+                    "Invalid ledger entry type");
+        }
+    }
+
+    private UUID parseEntryId(String raw) {
         if (!raw.matches(ID_PATTERN)) {
-            throw invalidTransactionId();
+            throw invalidEntryId();
         }
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException exception) {
-            throw invalidTransactionId();
+            throw invalidEntryId();
         }
     }
 
@@ -70,9 +82,9 @@ public final class UndoParser implements Parser<Undo> {
         return fields[index];
     }
 
-    private CommandParseException invalidTransactionId() {
-        return error(ParseErrorCode.INVALID_TRANSACTION_ID, TRANSACTION_ID_INDEX, "transactionId",
-                "Invalid transaction ID");
+    private CommandParseException invalidEntryId() {
+        return error(ParseErrorCode.INVALID_ENTRY_ID, ENTRY_ID_INDEX, "entryId",
+                "Invalid ledger entry ID");
     }
 
     private CommandParseException error(ParseErrorCode code, int fieldIndex, String fieldName, String message) {

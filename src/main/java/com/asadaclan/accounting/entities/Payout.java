@@ -10,13 +10,13 @@ import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table("payout")
+@Table("payouts")
 public final class Payout implements Persistable<UUID> {
     @Id
     private final UUID id;
 
     @Column("business_id")
-    private final UUID businessId;
+    private final String businessId;
 
     private final BigDecimal amount;
 
@@ -28,7 +28,7 @@ public final class Payout implements Persistable<UUID> {
     }
 
     @PersistenceCreator
-    public Payout(UUID id, UUID businessId, BigDecimal amount, LocalDate date) {
+    public Payout(UUID id, String businessId, BigDecimal amount, LocalDate date) {
         this.id = id;
         this.businessId = businessId;
         this.amount = amount;
@@ -53,7 +53,7 @@ public final class Payout implements Persistable<UUID> {
         return id;
     }
 
-    public UUID businessId() {
+    public String businessId() {
         return businessId;
     }
 

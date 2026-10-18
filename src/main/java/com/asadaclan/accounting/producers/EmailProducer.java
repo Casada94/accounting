@@ -1,15 +1,11 @@
 package com.asadaclan.accounting.producers;
 
 import java.io.File;
-import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
-
-import com.asadaclan.accounting.exceptions.CryptoException;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -17,16 +13,13 @@ import jakarta.mail.internet.MimeMessage;
 @Component
 public class EmailProducer {
 
-    private JavaMailSender mailSender; 
-    private List<String> recipients;
+    private final JavaMailSender mailSender;
 
-    public EmailProducer(JavaMailSender mailSender, @Value("${email.recipients:}") List<String> recipients)
-            throws CryptoException {
+    public EmailProducer(JavaMailSender mailSender) {
         this.mailSender = mailSender;
-        this.recipients = recipients;
     }
 
-    public void sendMail(String subject, String bodyText, File file) throws MessagingException {
+    public void sendMail(String recipient, String subject, String bodyText, File file) throws MessagingException {
         // Create a MimeMessage
         MimeMessage message = mailSender.createMimeMessage();
 
@@ -34,7 +27,7 @@ public class EmailProducer {
         // a multipart message.
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-        helper.setTo(recipients.toArray(String[]::new));
+        helper.setTo(recipient);
         helper.setSubject(subject);
         // The 'false' argument here indicates the text is plain text, not HTML
         helper.setText(bodyText, false);
