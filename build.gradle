@@ -49,6 +49,13 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+tasks.register('dockerBuild', Exec) {
+	group = 'deployment'
+	description = 'Builds the accounting Docker image from the project Dockerfile.'
+	workingDir = projectDir
+	commandLine 'docker', 'build', '--tag', 'accounting:latest', '.'
+}
+
 tasks.register('deploy', Exec) {
 	group = 'deployment'
 	description = 'Exports the accounting Docker image and copies the Compose file.'
