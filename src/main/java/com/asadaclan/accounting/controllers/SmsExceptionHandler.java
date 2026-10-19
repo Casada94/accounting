@@ -7,7 +7,7 @@ import com.asadaclan.accounting.exceptions.CommandParseException;
 import com.asadaclan.accounting.exceptions.UnregisteredPhoneNumberException;
 import com.asadaclan.accounting.models.TwimlResponse;
 
-@RestControllerAdvice(assignableTypes = SmsController.class)
+@RestControllerAdvice(assignableTypes = {SmsController.class, RcsController.class})
 public class SmsExceptionHandler {
 
     @ExceptionHandler(CommandParseException.class)

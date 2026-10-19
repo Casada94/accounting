@@ -38,6 +38,7 @@ import com.asadaclan.accounting.exceptions.ParseErrorCode;
 import com.asadaclan.accounting.exceptions.UnregisteredPhoneNumberException;
 import com.asadaclan.accounting.models.TwilioInboundMessage;
 import com.asadaclan.accounting.services.BusinessAuthorizationService;
+import com.asadaclan.accounting.services.InboundMessageService;
 import com.asadaclan.accounting.services.MessageDelegationService;
 import com.asadaclan.accounting.services.ParserDelegationService;
 import com.asadaclan.accounting.services.ReportService;
@@ -66,8 +67,9 @@ class SmsControllerTests {
 
     @BeforeEach
     void setUp() {
-        controller = new SmsController(messageDelegationService, parserDelegationService,
-                businessAuthorizationService, reportService);
+        InboundMessageService inboundMessageService = new InboundMessageService(
+                messageDelegationService, parserDelegationService, businessAuthorizationService, reportService);
+        controller = new SmsController(inboundMessageService);
         lenient().when(businessAuthorizationService.requireBusiness(AUTHORIZED_PHONE_NUMBER))
                 .thenReturn(BUSINESS);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
