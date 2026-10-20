@@ -14,9 +14,7 @@ import com.asadaclan.accounting.repositories.UndoRepository;
 
 @SpringBootTest(properties = "spring.autoconfigure.exclude="
 		+ "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
-		+ "org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration,"
-		+ "org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration,"
-		+ "org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration")
+		+ "org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration")
 class AccountingApplicationTests {
 	@MockitoBean
 	private EmailProducer emailProducer;

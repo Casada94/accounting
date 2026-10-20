@@ -11,8 +11,16 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-accounting}
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-accounting}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:?Set SPRING_MAIL_HOST in .env}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:?Set SPRING_MAIL_PORT in .env}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:?Set SPRING_MAIL_USERNAME in .env}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:?Set SPRING_MAIL_PASSWORD in .env}
     ports:
       - "${ACCOUNTING_PORT:?Set ACCOUNTING_PORT in .env}:8080"
+    volumes:
+      - type: bind
+        source: ${ACCOUNTING_PDF_PATH:?Set ACCOUNTING_PDF_PATH in .env}
+        target: /app/generated/pdf
     restart: unless-stopped
 
   mysql:

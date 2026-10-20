@@ -26,6 +26,9 @@ WORKDIR /app
 
 COPY --from=builder --chown=accounting:accounting /workspace/app.jar app.jar
 
+RUN mkdir -p /app/generated/pdf \
+    && chown accounting:accounting /app /app/generated /app/generated/pdf
+
 USER accounting
 
 EXPOSE 8080

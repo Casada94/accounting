@@ -4,7 +4,7 @@
 
 This is a Java 21 Spring Boot application built with Gradle. Production code lives under `src/main/java/com/asadaclan/accounting`, organized by responsibility: `controllers/` handles HTTP endpoints, `service/` contains business operations, `producers/` integrates outbound messaging, `reporting/` generates reports, and `models/`, `enums/`, `exceptions/`, and `util/` hold supporting types.
 
-Tests mirror these packages under `src/test/java`. Runtime configuration is in `src/main/resources`; environment profiles use `dev-application.yaml`, `stage-application.yaml`, and `prod-application.yaml`. LaTeX report templates belong in `src/main/resources/templates`.
+Tests mirror these packages under `src/test/java`. Runtime configuration is in `src/main/resources`; environment profiles use `application-dev.yaml`, `application-stage.yaml`, and `application-prod.yaml`. LaTeX report templates belong in `src/main/resources/templates`.
 
 ## Build, Test, and Development Commands
 
